@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Version: build_27-06-2020
+
+clear
+
+echo -e "\nMicropython: Firmware ESP8266 Wemos D1 Mini.\n"
+
+# Check Firmware Path.
+if [ -d "./firmware" ];then
+    rm -rf ./firmware && mkdir ./firmware
+else
+    mkdir ./firmware
+fi
+
+# Model ESP8266.
+MODEL="esp8266"
+
+# Searching for Wemos D1 Mini Device.
+DEV_PORT="ttyUSB0"
+
+# MicroPython Mirror (ALL).
+MIRROR="http://micropython.org/download/all/"
+
+# Resource URL Mirror.
+RESOURCE="http://micropython.org/resources/firmware/"
+
+# Tools for Micropython: esptool and webrepl.
+install_esptool(){
+    echo -e "\nMicropython: Installing Micropython Tools.\n"
+    sudo pip3 install --upgrade pip > pip.log
+    sudo pip3 install esptool >> pip.log
+    sudo pip3 install webrepl >> pip.log
+}
+
+# Erase Firmware ESP8266.
+erase_firmware(){
+    echo -e "\nMicropython: Erase Firmware ESP8266 Wemos D1 Mini.\n"
+    sudo esptool.py --chip "$MODEL" --port /dev/"$DEV_PORT" erase_flash
+}
+
+# Get ESP8266 Firmware (latest version).
+get_firmware(){
+    echo -e "\nMicropython: Download Firmware ESP8266 Wemos D1 Mini.\n"
+    FIRMWARE=$(curl -s "${MIRROR//}" | grep esp8266 | sed -e "s/<[^>]*>//g" | sort)
+    FIRMWARE=$(echo "${FIRMWARE}" | grep .bin | grep "esp8266-2020**-*" | sed 's/^ *//g' | head -1)
+    cd ./firmware && wget --progress=bar ${RESOURCE}${FIRMWARE} && cd ..
+}
+
+# Load ESP8266 Firmware.
+load_firmware(){
+    echo -e "\nMicropython: Load Firmware ESP8266 Wemos D1 Mini.\n"
+    FIRMWARE_VERSION=$(ls ./firmware/)
+    sudo esptool.py --port /dev/$DEV_PORT --baud 460800 write_flash -fm dio --flash_size=detect 0 ./firmware/$FIRMWARE_VERSION
+}
+
+install_esptool
+erase_firmware
+get_firmware
+load_firmware
